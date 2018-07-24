@@ -34,19 +34,22 @@ sox=`command -v sox 2>/dev/null` \
   || { echo  >&2 "sox not found on PATH. Please install it manually (you will need version 14.4.0 and higher)."; exit 1; }
 
 # If sox is found on path, check if the version is correct
-if [ ! -z "$sox" ]; then
-  sox_version=`$sox --version 2>&1| head -1 | sed -e 's?.*: ??' -e 's?.* ??'`
-  if [[ ! $sox_version =~ v14.4.* ]]; then
-    echo "Unsupported sox version $sox_version found on path. You will need version v14.4.0 and higher."
-    exit 1
-  fi
-fi
+#if [ ! -z "$sox" ]; then
+#  sox_version=`$sox --version 2>&1| head -1 | sed -e 's?.*: ??' -e 's?.* ??'`
+#  if [[ ! $sox_version =~ v14.4.* ]]; then
+#    echo "Unsupported sox version $sox_version found on path. You will need version v14.4.0 and higher."
+#    exit 1
+#  fi
+#fi
 
 command -v phonetisaurus-align &>/dev/null \
   || { echo  >&2 "Phonetisaurus not found on PATH. Please use the script $KALDI_ROOT/tools/extras/install_phonetisaurus.sh to install it"; exit 1; }
 
 command -v BeamformIt &>/dev/null \
   || { echo  >&2 "BeamformIt not found on PATH. Please use the script $KALDI_ROOT/tools/extras/install_beamformit.sh to install it"; exit 1; }
+
+command -v ffmpeg &>/dev/null \
+  || { echo >&2 "FFMPEG not found on PATH. You will have to install FFMPEG"; exit 1; }
 
 exit  0
 

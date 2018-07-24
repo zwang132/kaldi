@@ -6,6 +6,9 @@
 # Begin configuration section.
 mictype=worn # worn, ref or others
 cleanup=true
+rn=0
+cdir=${adir}/../../conf
+ndir=${adir}/../../noise/train
 # End configuration section
 . ./utils/parse_options.sh  # accept options.. you can run this run.sh with the
 
@@ -26,8 +29,10 @@ adir=$1
 jdir=$2
 dir=$3
 
-json_count=$(find -L $jdir -name "*.json" | wc -l)
-wav_count=$(find -L $adir -name "*.wav" | wc -l)
+#json_count=$(find $jdir -name "*.json" | wc -l)
+#wav_count=$(find $adir -name "*.wav" | wc -l)
+json_count=$(find $jdir -name "*.json" | wc -l | awk '{print $1}')
+wav_count=$(find $adir -name "*.wav" | wc -l | awk '{print $1}')
 
 if [ "$json_count" -eq 0 ]; then
   echo >&2 "We expect that the directory $jdir will contain json files."
@@ -56,7 +61,7 @@ if [ $mictype == "worn" ]; then
   # convert the filenames to wav.scp format, use the basename of the file
   # as a the wav.scp key, add .L and .R for left and right channel
   # i.e. each file will have two entries (left and right channel)
-  find -L $adir -name  "S[0-9]*_P[0-9]*.wav" | \
+  find $adir -name  "S[0-9]*_P[0-9]*.wav" | \
     perl -ne '{
       chomp;
       $path = $_;
@@ -81,17 +86,52 @@ elif [ $mictype == "ref" ]; then
   # first get a text, which will be used to extract reference arrays
   perl -ne 's/-/.ENH-/;print;' $dir/text.orig | sort > $dir/text
 
-  find -L $adir | grep "\.wav" | sort > $dir/wav.flist
+  find $adir | grep "\.wav" | sort > $dir/wav.flist
   # following command provide the argument for grep to extract only reference arrays
   grep `cut -f 1 -d"-" $dir/text | awk -F"_" '{print $2 "_" $3}' | sed -e "s/\.ENH//" | sort | uniq | sed -e "s/^/ -e /" | tr "\n" " "` $dir/wav.flist > $dir/wav.flist2
   paste -d" " \
 	<(awk -F "/" '{print $NF}' $dir/wav.flist2 | sed -e "s/\.wav/.ENH/") \
 	$dir/wav.flist2 | sort > $dir/wav.scp
+elif [ $mictype == "aug" ]; then
+  # convert filenames to wav.scp format, use the basename of the file
+  find $adir -name "S[0-9]*_P[0-9]*.wav" | \
+    perl -ne '{
+      chomp;
+      $path = $_;
+      next unless $path;
+      @F = split "/", $path;
+      ($f = $F[@F-1]) =~ s/.wav//;
+      @F = split "_", $f;
+      $t = "${F[1]}_${F[0]}";
+      @mic_seq = ('U01', 'U02', 'U04', 'U05', 'U06');
+      foreach $mic (@mic_seq) {
+        print "${t}_${mic}.AUG.L ffmpeg -safe 0 -f concat -i `./local/room_simulator.sh ${t}_${mic}` -map_channel 0.0.0 -f wav pipe: 2>/dev/null |\n";
+        print "${t}_${mic}.AUG.R ffmpeg -safe 0 -f concat -i `./local/room_simulator.sh ${t}_${mic}` -map_channel 0.0.1 -f wav pipe: 2>/dev/null |\n";
+      }
+    }' | sort > $dir/wav.scp.t
+  p="\` "
+  cat $dir/wav.scp.t | sed "s@$p@\ $cdir\ $rn\ $ndir\ $adir$p@g" | sort > $dir/wav.scp
+
+  # Get a text
+  cat $dir/text.orig | \
+    perl -ne '{
+      chomp;
+      $name = $_;
+      next unless $name;
+      @F = split "_", $name;
+      @G = split "-", $F[@F-1];
+      @mic_seq = ('U01', 'U02', 'U04', 'U05', 'U06');
+      foreach $mic (@mic_seq) {
+        print "${F[0]}_${F[1]}_${mic}_${G[0]}.AUG.L-${G[1]}-${G[2]}\n";
+        print "${F[0]}_${F[1]}_${mic}_${G[0]}.AUG.R-${G[1]}-${G[2]}\n";
+      }
+    }' | sort > $dir/text
+
 else
   # array mic case
   # convert the filenames to wav.scp format, use the basename of the file
   # as a the wav.scp key
-  find -L $adir -name "*.wav" -ipath "*${mictype}*" |\
+  find $adir -name "*.wav" -ipath "*${mictype}*" |\
     perl -ne '$p=$_;chomp $_;@F=split "/";$F[$#F]=~s/\.wav//;print "$F[$#F] $p";' |\
     sort -u > $dir/wav.scp
 
@@ -111,7 +151,7 @@ fi
 $cleanup && rm -f $dir/text.* $dir/wav.scp.* $dir/wav.flist
 
 # Prepare 'segments', 'utt2spk', 'spk2utt'
-if [ $mictype == "worn" ]; then
+if [ $mictype == "worn" ] || [ $mictype == "aug" ]; then
   cut -d" " -f 1 $dir/text | \
     awk -F"-" '{printf("%s %s %08.2f %08.2f\n", $0, $1, $2/100.0, $3/100.0)}' |\
     sed -e "s/_[A-Z]*\././2" \
