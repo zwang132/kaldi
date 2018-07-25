@@ -28,8 +28,8 @@ set -o pipefail
 person=`echo $uid | awk -F"_" '{print $1}'`
 session=`echo $uid | awk -F"_" '{print $2}'`
 mic=`echo $uid | awk -F"_" '{print $3}'`
-odir=aug/$session/$person
-expdir=exp/aug/$session/$person
+odir=/export/b05/cszu/aug/$session/$person
+expdir=/export/b05/cszu/exp/aug/$session/$person
 
 check_file(){
   if [ ! -f $odir/$mic.finish ]; then
