@@ -33,7 +33,7 @@ main_dir=/export/b05/zhiqiw
 #train_set=train_worn_u100k
 train_set=train_worn_aug400k_u400k
 #test_sets="dev_worn dev_${enhancement}_ref eval_${enhancement}_ref"
-test_sets="dev_worn dev_${enhancement}_ref dev_${enhancement}_dereverb_ref eval_${enhancement}_ref"
+test_sets="dev_worn dev_${enhancement}_ref dev_${enhancement}_dereverb_ref"
 
 # This script also needs the phonetisaurus g2p, srilm, beamformit
 ./local/check_tools.sh || exit 1
@@ -72,7 +72,7 @@ if [ $stage -le 3 ]; then
 		data/lang $LM data/local/dict/lexicon.txt data/lang
 
 fi
-echo "Done" && exit 1
+
 if [ $stage -le 4 ]; then
   # Beamforming using reference arrays
   # enhanced WAV directory
@@ -86,22 +86,9 @@ if [ $stage -le 4 ]; then
     done
   done
  
-  for dset in dev; do 
-    for mictype in u01 u02 u03 u04 u05 u06; do
-      local/run_beamformit.sh --cmd "$train_cmd" ${main_dir}/${dset}_wpe \
-	                      ${enhandir}_dereverb/${dset}_${enhancement}_dereverb_${mictype} \
-			      ${mictype}
-    done
-  done
-
   for dset in dev eval; do
     local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
 			  ${json_dir}/${dset} data/${dset}_${enhancement}_ref
-  done
-
-  for dset in dev; do
-    local/prepare_data.sh --mictyp ref "$PWD/${enhandir}_dereverb/${dset}_${enhancement}_dereverb_u0*" \
-	                  ${json_dir}/${dset} data/${dset}_${enhancement}_dereverb_ref
   done
 fi
 
@@ -174,7 +161,7 @@ if [ $stage -le 7 ]; then
     utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}_nosplit_fix data/${dset}
   done
 fi
-
+echo "Done" && exit 1
 if [ $stage -le 8 ]; then
   # Now make MFCC features.
   # mfccdir should be some place with a largish disk where you
