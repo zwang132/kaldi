@@ -146,3 +146,6 @@ GSYMS
 
 # backup
 /egs/chime5/s5/bk/
+
+# audiofile
+/egs/chime5/s5/enhan*/
