@@ -161,7 +161,7 @@ if [ $stage -le 7 ]; then
     utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}_nosplit_fix data/${dset}
   done
 fi
-echo "Done" && exit 1
+
 if [ $stage -le 8 ]; then
   # Now make MFCC features.
   # mfccdir should be some place with a largish disk where you
@@ -211,7 +211,7 @@ if [ $stage -le 13 ]; then
   done
   wait
 fi
-
+echo "Stage 13" && exit 1
 if [ $stage -le 14 ]; then
   steps/align_si.sh --nj $nj --cmd "$train_cmd" \
 		    data/${train_set} data/lang exp/tri2 exp/tri2_ali
@@ -228,7 +228,7 @@ if [ $stage -le 15 ]; then
   done
   wait
 fi
-
+echo "Stage 15" && exit 1
 if [ $stage -le 16 ]; then
   # The following script cleans the data and produces cleaned data
   steps/cleanup/clean_and_segment_data.sh --nj ${nj} --cmd "$train_cmd" \
