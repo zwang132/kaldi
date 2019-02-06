@@ -5,7 +5,7 @@ set -euo pipefail
 
 # First the options that are passed through to run_ivector_common.sh
 # (some of which are also used in this script directly).
-stage=14
+stage=2
 nj=96
 train_set=train_worn_u400k_cleaned
 test_sets="dev_worn dev_beamformit_ref"
@@ -15,7 +15,7 @@ lm_suffix=
 
 # The rest are configs specific to this script.  Most of the parameters
 # are just hardcoded at this level, in the commands below.
-affix=_1a   # affix for the TDNN directory name
+affix=_1a2   # affix for the TDNN directory name
 tree_affix=
 train_stage=-10
 get_egs_stage=-10
@@ -28,7 +28,7 @@ cell_dim=1024
 projection_dim=256
 
 # training options
-num_epochs=2  # 2 works better than 4
+num_epochs=2
 chunk_width=140,100,160
 chunk_left_context=40
 chunk_right_context=0
@@ -66,7 +66,7 @@ fi
 # The iVector-extraction and feature-dumping parts are the same as the standard
 # nnet3 setup, and you can skip them by setting "--stage 11" if you have already
 # run those things.
-local/nnet3/run_ivector_common.sh --stage $stage \
+local/nnet3/run_ivector_common_old.sh --stage $stage \
                                   --train-set $train_set \
 				  --test-sets "$test_sets" \
                                   --gmm $gmm \
@@ -199,7 +199,7 @@ if [ $stage -le 14 ]; then
   touch $dir/egs/.nodelete # keep egs around when that run dies.
 
   steps/nnet3/chain/train.py --stage=$train_stage \
-    --cmd="$train_cmd --mem 16G -l hostname=!a*" \
+    --cmd="$train_cmd --mem 4G" \
     --feat.online-ivector-dir=$train_ivector_dir \
     --feat.cmvn-opts="--norm-means=false --norm-vars=false" \
     --chain.xent-regularize $xent_regularize \
@@ -246,19 +246,32 @@ fi
 if [ $stage -le 16 ]; then
   frames_per_chunk=$(echo $chunk_width | cut -d, -f1)
   rm $dir/.error 2>/dev/null || true
-
+  # normal decoding
+  # for data in $test_sets; do
+    # (
+      # steps/nnet3/decode.sh \
+          # --acwt 1.0 --post-decode-acwt 10.0 \
+          # --extra-left-context $chunk_left_context \
+          # --extra-right-context $chunk_right_context \
+          # --extra-left-context-initial 0 \
+          # --extra-right-context-final 0 \
+          # --frames-per-chunk $frames_per_chunk \
+          # --nj 8 --cmd "$decode_cmd"  --num-threads 4 \
+          # --online-ivector-dir exp/nnet3${nnet3_affix}/ivectors_${data}_hires \
+          # $tree_dir/graph${lm_suffix} data/${data}_hires ${dir}/decode${lm_suffix}_${data} || exit 1
+    # ) || touch $dir/.error &
+  # done
+  # wait
+  # 2-stage decoding
   for data in $test_sets; do
     (
-      steps/nnet3/decode.sh \
-          --acwt 1.0 --post-decode-acwt 10.0 \
-          --extra-left-context $chunk_left_context \
-          --extra-right-context $chunk_right_context \
-          --extra-left-context-initial 0 \
-          --extra-right-context-final 0 \
-          --frames-per-chunk $frames_per_chunk \
-          --nj 8 --cmd "$decode_cmd"  --num-threads 4 \
-          --online-ivector-dir exp/nnet3${nnet3_affix}/ivectors_${data}_hires \
-          $tree_dir/graph${lm_suffix} data/${data}_hires ${dir}/decode${lm_suffix}_${data} || exit 1
+      local/nnet3/decode.sh \
+        --affix 2stage --pass2-decode-opts "--min-active 1000" --acwt 1.0 \
+        --post-decode-acwt 10.0 --extra-left-context $chunk_left_context \
+        --extra-right-context $chunk_right_context --extra-left-context-initial 0 \
+        --extra-right-context-final 0 --frames-per-chunk $frames_per_chunk \
+        --decode-num-jobs 70 --ivector-dir exp/nnet3${nnet3_affix} data/${data} $lang \
+        $tree_dir/graph${lm_suffix} ${dir} || exit 1
     ) || touch $dir/.error &
   done
   wait

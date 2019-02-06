@@ -9,7 +9,7 @@ set -euo pipefail
 # of usage.
 
 stage=0
-train_set=train_worn_u400k
+train_set=train_worn_u100k
 test_sets="dev_worn dev_beamformit_ref"
 gmm=tri3
 nj=96
@@ -53,18 +53,18 @@ if [ $stage -le 3 ]; then
   echo "$0: creating high-resolution MFCC features"
   mfccdir=data/${train_set}_sp_hires/data
   if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d $mfccdir/storage ]; then
-    utils/create_split_dir.pl /export/b1{4,5,6,8}/$USER/kaldi-data/mfcc/chime5-$(date +'%m_%d_%H_%M')/s5/$mfccdir/storage $mfccdir/storage
+    utils/create_split_dir.pl /export/b1{5,6,7,8}/$USER/kaldi-data/mfcc/chime5-$(date +'%m_%d_%H_%M')/s5/$mfccdir/storage $mfccdir/storage
   fi
 
-  for datadir in ${train_set}_sp ${test_sets}; do
+  for datadir in ${test_sets}; do #${train_set}_sp
     utils/copy_data_dir.sh data/$datadir data/${datadir}_hires
   done
 
   # do volume-perturbation on the training data prior to extracting hires
   # features; this helps make trained nnets more invariant to test data volume.
-  utils/data/perturb_data_dir_volume.sh data/${train_set}_sp_hires || exit 1;
+  #utils/data/perturb_data_dir_volume.sh data/${train_set}_sp_hires || exit 1;
 
-  for datadir in ${train_set}_sp ${test_sets}; do
+  for datadir in ${test_sets}; do #${train_set}_sp
     steps/make_mfcc.sh --nj 20 --mfcc-config conf/mfcc_hires.conf \
       --cmd "$train_cmd" data/${datadir}_hires || exit 1;
     steps/compute_cmvn_stats.sh data/${datadir}_hires || exit 1;
@@ -121,21 +121,21 @@ if [ $stage -le 6 ]; then
   # that's the data we extract the ivectors from, as it's still going to be
   # valid for the non-'max2' data, the utterance list is the same.
 
-  ivectordir=exp/nnet3${nnet3_affix}/ivectors_${train_set}_sp_hires
-  if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d $ivectordir/storage ]; then
-    utils/create_split_dir.pl /export/b0{5,6,7,8}/$USER/kaldi-data/ivectors/chime5-$(date +'%m_%d_%H_%M')/s5/$ivectordir/storage $ivectordir/storage
-  fi
+  # ivectordir=exp/nnet3${nnet3_affix}/ivectors_${train_set}_sp_hires
+  # if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d $ivectordir/storage ]; then
+    # utils/create_split_dir.pl /export/b0{5,6,7,8}/$USER/kaldi-data/ivectors/chime5-$(date +'%m_%d_%H_%M')/s5/$ivectordir/storage $ivectordir/storage
+  # fi
 
 
   # having a larger number of speakers is helpful for generalization, and to
   # handle per-utterance decoding well (iVector starts at zero).
-  temp_data_root=${ivectordir}
-  utils/data/modify_speaker_info.sh --utts-per-spk-max 2 \
-    data/${train_set}_sp_hires ${temp_data_root}/${train_set}_sp_hires_max2
+  # temp_data_root=${ivectordir}
+  # utils/data/modify_speaker_info.sh --utts-per-spk-max 2 \
+    # data/${train_set}_sp_hires ${temp_data_root}/${train_set}_sp_hires_max2
 
-  steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj ${nj} \
-    ${temp_data_root}/${train_set}_sp_hires_max2 \
-    exp/nnet3${nnet3_affix}/extractor $ivectordir
+  # steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj ${nj} \
+    # ${temp_data_root}/${train_set}_sp_hires_max2 \
+    # exp/nnet3${nnet3_affix}/extractor $ivectordir
 
   # Also extract iVectors for the test data, but in this case we don't need the speed
   # perturbation (sp).

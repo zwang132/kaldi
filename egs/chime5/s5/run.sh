@@ -30,10 +30,11 @@ noise_dir=/export/b05/cszu/noise
 main_dir=/export/b05/zhiqiw
 
 # training and test data
-#train_set=train_worn_u100k
-train_set=train_worn_aug400k_u400k
+#train_set=train_worn_u400k
+train_set=train_worn_Imageaug400k_u400k
 #test_sets="dev_worn dev_${enhancement}_ref eval_${enhancement}_ref"
-test_sets="dev_worn dev_${enhancement}_ref dev_${enhancement}_dereverb_ref"
+test_sets="dev_worn dev_${enhancement}_ref"
+#test_sets="dev_worn dev_${enhancement}_ref dev_${enhancement}_dereverb_ref"
 
 # This script also needs the phonetisaurus g2p, srilm, beamformit
 ./local/check_tools.sh || exit 1
@@ -44,6 +45,7 @@ if [ $stage -le 1 ]; then
     local/prepare_data.sh --mictype ${mictype} \
 			  ${audio_dir}/train ${json_dir}/train data/train_${mictype}
   done
+
   for dataset in dev; do
     for mictype in worn; do
       local/prepare_data.sh --mictype ${mictype} \
@@ -85,7 +87,7 @@ if [ $stage -le 4 ]; then
 			      ${mictype}
     done
   done
- 
+
   for dset in dev eval; do
     local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
 			  ${json_dir}/${dset} data/${dset}_${enhancement}_ref
@@ -96,10 +98,13 @@ if [ $stage -le 5 ]; then
   # Prepare data for reverberant speech
   for set in train; do
     for mictype in aug; do
-      local/prepare_data.sh --mictype $mictype --rn 1 --cdir ${conf_dir} \
-	                    --ndir ${noise_dir}/${set} \
-			    ${audio_dir}/${set} ${json_dir}/${set} \
-			    data/${set}_${mictype}
+      for datatype in Image 3D; do
+        local/prepare_data.sh --mictype $mictype --rn 1 --cdir ${conf_dir} \
+	                      --ndir ${noise_dir}/${set} \
+			      --datatype $datatype \
+	  		      ${audio_dir}/${set} ${json_dir}/${set} \
+			      data/${set}_${mictype}_${datatype}
+      done
     done
   done
 fi
@@ -107,21 +112,27 @@ fi
 if [ $stage -le 6 ]; then
   # remove possibly bad sessions (P11_S03, P52_S19, P53_S24, P54_S24)
   # see http://spandh.dcs.shef.ac.uk/chime_challenge/data.html for more details
-  utils/copy_data_dir.sh data/train_worn data/train_worn_org # back up
-  utils/copy_data_dir.sh data/train_aug data/train_aug_org # back up
-  grep -v -e "^P11_S03" -e "^P52_S19" -e "^P53_S24" -e "^P54_S24" data/train_worn_org/text > data/train_worn/text
-  grep -v -e "^P11_S03" -e "^P52_S19" -e "^P53_S24" -e "^P54_S24" data/train_aug_org/text > data/train_aug/text
-  utils/fix_data_dir.sh data/train_worn
-  utils/fix_data_dir.sh data/train_aug
+#  utils/copy_data_dir.sh data/train_worn data/train_worn_org # back up
+#  grep -v -e "^P11_S03" -e "^P52_S19" -e "^P53_S24" -e "^P54_S24" data/train_worn_org/text > data/train_worn/text
+#  utils/fix_data_dir.sh data/train_worn
+#  for datatype in Image 3D; do
+#    utils/copy_data_dir.sh data/train_aug_${datatype} data/train_aug_${datatype}_org # back up
+#    grep -v -e "^P11_S03" -e "^P52_S19" -e "^P53_S24" -e "^P54_S24" data/train_aug_${datatype}_org/text > data/train_aug_${datatype}/text
+#    utils/fix_data_dir.sh data/train_aug_${datatype}
+#  done
 
   # combine mix array and worn mics
   # randomly extract first 100k utterances from all mics
   # if you want to include more training data, you can increase the number of array mic utterances
-  utils/combine_data.sh data/train_uall data/train_u01 data/train_u02 data/train_u04 data/train_u05 data/train_u06
-  utils/subset_data_dir.sh data/train_uall 400000 data/train_u400k
-  utils/subset_data_dir.sh data/train_aug 400000 data/train_aug400k
-#  utils/combine_data.sh data/${train_set} data/train_worn data/train_u100k
-  utils/combine_data.sh data/${train_set} data/train_worn data/train_aug400k data/train_u400k
+#  utils/combine_data.sh data/train_uall data/train_u01 data/train_u02 data/train_u04 data/train_u05 data/train_u06
+#  utils/subset_data_dir.sh data/train_uall 400000 data/train_u400k
+#  for datatype in Image 3D; do
+#    utils/subset_data_dir.sh data/train_aug_${datatype} 400000 data/train_aug400k_${datatype}
+#    utils/subset_data_dir.sh data/train_aug_${datatype} 400000 data/train_aug400k_${datatype}
+#  done
+#  utils/combine_data.sh data/${train_set} data/train_worn data/train_u400k
+#  utils/combine_data.sh data/${train_set} data/train_worn data/train_aug400k_3D data/train_u400k
+  utils/combine_data.sh data/${train_set} data/train_worn data/train_aug400k_Image data/train_u400k
 
   # only use left channel for worn mic recognition
   # you can use both left and right channels for training
@@ -143,51 +154,65 @@ if [ $stage -le 7 ]; then
   # $ head -n 2 data/eval_beamformit_ref_nosplit_fix/utt2spk
   # P01_S01_U02_KITCHEN.ENH-0000192-0001278 P01_U02
   # P01_S01_U02_KITCHEN.ENH-0001421-0001481 P01_U02
-  for dset in dev_${enhancement}_ref eval_${enhancement}_ref; do
-    utils/copy_data_dir.sh data/${dset} data/${dset}_nosplit
-    mkdir -p data/${dset}_nosplit_fix
-    cp data/${dset}_nosplit/{segments,text,wav.scp} data/${dset}_nosplit_fix/
-    awk -F "_" '{print $0 "_" $3}' data/${dset}_nosplit/utt2spk > data/${dset}_nosplit_fix/utt2spk
-    utils/utt2spk_to_spk2utt.pl data/${dset}_nosplit_fix/utt2spk > data/${dset}_nosplit_fix/spk2utt
-  done
+#  for dset in dev_${enhancement}_ref eval_${enhancement}_ref; do
+#    utils/copy_data_dir.sh data/${dset} data/${dset}_nosplit
+#    mkdir -p data/${dset}_nosplit_fix
+#    cp data/${dset}_nosplit/{segments,text,wav.scp} data/${dset}_nosplit_fix/
+#    awk -F "_" '{print $0 "_" $3}' data/${dset}_nosplit/utt2spk > data/${dset}_nosplit_fix/utt2spk
+#    utils/utt2spk_to_spk2utt.pl data/${dset}_nosplit_fix/utt2spk > data/${dset}_nosplit_fix/spk2utt
+#  done
 
   # Split speakers up into 3-minute chunks.  This doesn't hurt adaptation, and
   # lets us use more jobs for decoding etc.
-  for dset in ${train_set} dev_worn; do
+#  for dset in ${train_set} dev_worn; do
+#    utils/copy_data_dir.sh data/${dset} data/${dset}_nosplit
+#    utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}_nosplit data/${dset}
+#  done
+  for dset in ${train_set}; do
     utils/copy_data_dir.sh data/${dset} data/${dset}_nosplit
     utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}_nosplit data/${dset}
   done
-  for dset in dev_${enhancement}_ref eval_${enhancement}_ref; do
-    utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}_nosplit_fix data/${dset}
-  done
+#  for dset in dev_${enhancement}_ref eval_${enhancement}_ref; do
+#    utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}_nosplit_fix data/${dset}
+#  done
 fi
 
 if [ $stage -le 8 ]; then
+  echo "Stage 8"
   # Now make MFCC features.
   # mfccdir should be some place with a largish disk where you
   # want to store MFCC features.
   mfccdir=mfcc
-  for x in ${train_set} ${test_sets}; do
+#  for x in ${train_set} ${test_sets}; do
+#    steps/make_mfcc.sh --nj 20 --cmd "$train_cmd" \
+#		       data/$x exp/make_mfcc/$x $mfccdir
+#    steps/compute_cmvn_stats.sh data/$x exp/make_mfcc/$x $mfccdir
+#    utils/fix_data_dir.sh data/$x
+#  done
+  for x in ${train_set}; do
     steps/make_mfcc.sh --nj 20 --cmd "$train_cmd" \
-		       data/$x exp/make_mfcc/$x $mfccdir
+           data/$x exp/make_mfcc/$x $mfccdir
     steps/compute_cmvn_stats.sh data/$x exp/make_mfcc/$x $mfccdir
     utils/fix_data_dir.sh data/$x
   done
 fi
 
 if [ $stage -le 9 ]; then
+  echo "Stage 9"
   # make a subset for monophone training
   utils/subset_data_dir.sh --shortest data/${train_set} 100000 data/${train_set}_100kshort
   utils/subset_data_dir.sh data/${train_set}_100kshort 30000 data/${train_set}_30kshort
 fi
 
 if [ $stage -le 10 ]; then
+  echo "Stage 10"
   # Starting basic training on MFCC features
   steps/train_mono.sh --nj $nj --cmd "$train_cmd" \
 		      data/${train_set}_30kshort data/lang exp/mono
 fi
 
 if [ $stage -le 11 ]; then
+  echo "Stage 11"
   steps/align_si.sh --nj $nj --cmd "$train_cmd" \
 		    data/${train_set} data/lang exp/mono exp/mono_ali
 
@@ -196,6 +221,7 @@ if [ $stage -le 11 ]; then
 fi
 
 if [ $stage -le 12 ]; then
+  echo "Stage 12"
   steps/align_si.sh --nj $nj --cmd "$train_cmd" \
 		    data/${train_set} data/lang exp/tri1 exp/tri1_ali
 
@@ -204,6 +230,7 @@ if [ $stage -le 12 ]; then
 fi
 
 if [ $stage -le 13 ]; then
+  echo "Stage 13"
   utils/mkgraph.sh data/lang exp/tri2 exp/tri2/graph
   for dset in ${test_sets}; do
     steps/decode.sh --nj $decode_nj --cmd "$decode_cmd"  --num-threads 4 \
@@ -211,8 +238,9 @@ if [ $stage -le 13 ]; then
   done
   wait
 fi
-echo "Stage 13" && exit 1
+
 if [ $stage -le 14 ]; then
+  echo "Stage 14"
   steps/align_si.sh --nj $nj --cmd "$train_cmd" \
 		    data/${train_set} data/lang exp/tri2 exp/tri2_ali
 
@@ -221,6 +249,7 @@ if [ $stage -le 14 ]; then
 fi
 
 if [ $stage -le 15 ]; then
+  echo "Stage 15"
   utils/mkgraph.sh data/lang exp/tri3 exp/tri3/graph
   for dset in ${test_sets}; do
     steps/decode_fmllr.sh --nj $decode_nj --cmd "$decode_cmd"  --num-threads 4 \
@@ -228,8 +257,9 @@ if [ $stage -le 15 ]; then
   done
   wait
 fi
-echo "Stage 15" && exit 1
+
 if [ $stage -le 16 ]; then
+  echo "Stage 16"
   # The following script cleans the data and produces cleaned data
   steps/cleanup/clean_and_segment_data.sh --nj ${nj} --cmd "$train_cmd" \
     --segmentation-opts "--min-segment-length 0.3 --min-new-segment-length 0.6" \
@@ -237,10 +267,11 @@ if [ $stage -le 16 ]; then
 fi
 
 if [ $stage -le 17 ]; then
+  echo "Stage 17"
   # chain TDNN
   local/chain/run_tdnn.sh --nj ${nj} --train-set ${train_set}_cleaned --test-sets "$test_sets" --gmm tri3_cleaned --nnet3-affix _${train_set}_cleaned
 fi
-
+echo "Stage 17" && exit 1
 if [ $stage -le 18 ]; then
   # final scoring to get the official challenge result
   # please specify both dev and eval set directories so that the search parameters

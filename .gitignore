@@ -132,6 +132,7 @@ GSYMS
 /tools/mpg123-1.21.0
 /tools/pthreads
 /tools/pthreads*.zip
+/tools/python
 /tools/sequitur
 /tools/sequitur-g2p
 /tools/srilm.tgz
