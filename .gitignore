@@ -77,6 +77,11 @@ GSYMS
 /egs/*/*/plp
 /egs/*/*/exp
 /egs/*/*/data
+/egs/reverb/*/wav
+/egs/reverb/*/local/PESQ*
+/egs/reverb/*/local/REVERB*
+/egs/reverb/s5_Image
+/egs/reverb/s5_3D
 
 # /tools/
 /tools/pocolm/
