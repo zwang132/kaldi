@@ -13,7 +13,7 @@
 # ... by calling this script as, for example,
 # ./run.sh --mic sdm1
 # ./run.sh --mic mdm8
-mic=ihm
+mic=sdm1
 
 # Train systems,
 nj=30 # number of parallel jobs,
@@ -127,10 +127,14 @@ if [ $stage -le 7 ]; then
    graph_dir=exp/$mic/tri2/graph_${LM}
   $decode_cmd --mem 4G $graph_dir/mkgraph.log \
     utils/mkgraph.sh data/lang_${LM} exp/$mic/tri2 $graph_dir
+#  steps/decode.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
+#    $graph_dir data/$mic/dev exp/$mic/tri2/decode_dev_${LM}
+#  steps/decode.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
+#    $graph_dir data/$mic/eval exp/$mic/tri2/decode_eval_${LM}
   steps/decode.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
-    $graph_dir data/$mic/dev exp/$mic/tri2/decode_dev_${LM}
+    $graph_dir data/sdm1/dev exp/$mic/tri2/decode_dev_sdm1_${LM}
   steps/decode.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
-    $graph_dir data/$mic/eval exp/$mic/tri2/decode_eval_${LM}
+    $graph_dir data/sdm1/eval exp/$mic/tri2/decode_eval_sdm1_${LM}
 fi
 
 
@@ -147,10 +151,14 @@ if [ $stage -le 9 ]; then
   graph_dir=exp/$mic/tri3/graph_${LM}
   $decode_cmd --mem 4G $graph_dir/mkgraph.log \
     utils/mkgraph.sh data/lang_${LM} exp/$mic/tri3 $graph_dir
+#  steps/decode_fmllr.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
+#    $graph_dir data/$mic/dev exp/$mic/tri3/decode_dev_${LM}
+#  steps/decode_fmllr.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
+#    $graph_dir data/$mic/eval exp/$mic/tri3/decode_eval_${LM}
   steps/decode_fmllr.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
-    $graph_dir data/$mic/dev exp/$mic/tri3/decode_dev_${LM}
+    $graph_dir data/sdm1/dev exp/$mic/tri3/decode_dev_sdm1_${LM}
   steps/decode_fmllr.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
-    $graph_dir data/$mic/eval exp/$mic/tri3/decode_eval_${LM}
+    $graph_dir data/sdm1/eval exp/$mic/tri3/decode_eval_sdm1_${LM}
 fi
 
 if [ $stage -le 10 ]; then
@@ -166,7 +174,8 @@ fi
 if [ $stage -le 11 ]; then
   ali_opt=
   [ "$mic" != "ihm" ] && ali_opt="--use-ihm-ali true"
-  local/chain/run_tdnn.sh $ali_opt --mic $mic
+#  local/chain/run_tdnn.sh --mic ihm
+  local/chain/multi_condition/run_tdnn.sh $ali_opt --mic $mic
 fi
 
 if [ $stage -le 12 ]; then

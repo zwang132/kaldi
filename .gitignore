@@ -77,7 +77,12 @@ GSYMS
 /egs/*/*/plp
 /egs/*/*/exp
 /egs/*/*/data
-/egs/reverb/*/wav
+/egs/*/*/wav
+/egs/*/*/RIRS_NOISES
+/egs/*/*/enhan
+/egs/*/*/rirs_noise*
+/egs/chime5/s5b/distant_noise*
+/egs/ami/s5b/AMI_RIRs
 /egs/reverb/*/local/PESQ*
 /egs/reverb/*/local/REVERB*
 /egs/reverb/s5_Image

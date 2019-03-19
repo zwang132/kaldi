@@ -90,23 +90,23 @@ if [ $stage -le 3 ]; then
       unzip rirs_noises.zip
     fi
 
-    rvb_opts=()
-    rvb_opts+=(--rir-set-parameters "0.5, RIRS_NOISES/simulated_rirs/smallroom/rir_list")
-    rvb_opts+=(--rir-set-parameters "0.5, RIRS_NOISES/simulated_rirs/mediumroom/rir_list")
-    rvb_opts+=(--noise-set-parameters RIRS_NOISES/pointsource_noises/noise_list)
+#    rvb_opts=()
+#    rvb_opts+=(--rir-set-parameters "0.5, AMI_RIRs/small/gsound/rir_list")
+#    rvb_opts+=(--rir-set-parameters "0.5, AMI_RIRs/medium/gsound/rir_list")
+#    rvb_opts+=(--noise-set-parameters RIRS_NOISES/pointsource_noises/noise_list)
 
-    python steps/data/reverberate_data_dir.py \
-      "${rvb_opts[@]}" \
-      --prefix "rev" \
-      --foreground-snrs "20:10:15:5:0" \
-      --background-snrs "20:10:15:5:0" \
-      --speech-rvb-probability 1 \
-      --pointsource-noise-addition-probability 1 \
-      --isotropic-noise-addition-probability 1 \
-      --num-replications ${num_data_reps} \
-      --max-noises-per-minute 1 \
-      --source-sampling-rate $sample_rate \
-      ${norvb_datadir} ${norvb_datadir}${rvb_affix}${num_data_reps}
+#    python3 steps/data/reverberate_data_dir.py \
+#      "${rvb_opts[@]}" \
+#      --prefix "rev" \
+#      --foreground-snrs "20:10:15:5:0" \
+#      --background-snrs "20:10:15:5:0" \
+#      --speech-rvb-probability 1 \
+#      --pointsource-noise-addition-probability 1 \
+#      --isotropic-noise-addition-probability 1 \
+#      --num-replications ${num_data_reps} \
+#      --max-noises-per-minute 1 \
+#      --source-sampling-rate $sample_rate \
+#      ${norvb_datadir} ${norvb_datadir}${rvb_affix}${num_data_reps}
 
     utils/copy_data_dir.sh ${norvb_datadir}${rvb_affix}${num_data_reps} ${norvb_datadir}${rvb_affix}${num_data_reps}_hires
     utils/data/perturb_data_dir_volume.sh ${norvb_datadir}${rvb_affix}${num_data_reps}_hires

@@ -5,7 +5,7 @@ set -euo pipefail
 
 # First the options that are passed through to run_ivector_common.sh
 # (some of which are also used in this script directly).
-stage=14
+stage=16
 nj=96
 train_set=train_worn_u400k_cleaned
 test_sets="dev_worn dev_beamformit_ref"
@@ -249,21 +249,23 @@ if [ $stage -le 16 ]; then
 
   for data in $test_sets; do
     (
-      steps/nnet3/decode.sh \
+      local/nnet3/decode.sh \
           --acwt 1.0 --post-decode-acwt 10.0 \
           --extra-left-context $chunk_left_context \
           --extra-right-context $chunk_right_context \
           --extra-left-context-initial 0 \
           --extra-right-context-final 0 \
           --frames-per-chunk $frames_per_chunk \
-          --nj 8 --cmd "$decode_cmd"  --num-threads 4 \
-          --online-ivector-dir exp/nnet3${nnet3_affix}/ivectors_${data}_hires \
-          $tree_dir/graph${lm_suffix} data/${data}_hires ${dir}/decode${lm_suffix}_${data} || exit 1
+          --ivector-dir exp/nnet3${nnet3_affix} \
+          data/${data}_hires data/lang $tree_dir/graph${lm_suffix} ${dir} || exit 1
+#          $tree_dir/graph${lm_suffix} data/${data}_hires ${dir}/decode${lm_suffix}_${data} || exit 1
     ) || touch $dir/.error &
   done
   wait
   [ -f $dir/.error ] && echo "$0: there was a problem while decoding" && exit 1
 fi
+#--nj 8 --cmd "$decode_cmd" --num-threads 4 \
+#--online-ivector-dir exp/nnet3${nnet3_affix}/ivectors_${data}_hires \
 
 # Not testing the 'looped' decoding separately, because for
 # TDNN systems it would give exactly the same results as the

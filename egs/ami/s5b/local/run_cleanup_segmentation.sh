@@ -137,9 +137,12 @@ if [ $stage -le 5 ]; then
 
   $decode_cmd $graph_dir/mkgraph.log \
     utils/mkgraph.sh data/lang_$LM exp/$mic/${gmm}_${cleanup_affix} $graph_dir
+#  steps/decode_fmllr.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
+#    $graph_dir data/$mic/dev exp/$mic/${gmm}_${cleanup_affix}/decode_dev_$LM
+#  steps/decode_fmllr.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
+#    $graph_dir data/$mic/eval exp/$mic/${gmm}_${cleanup_affix}/decode_eval_$LM
   steps/decode_fmllr.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
-    $graph_dir data/$mic/dev exp/$mic/${gmm}_${cleanup_affix}/decode_dev_$LM
+    $graph_dir data/sdm1/dev exp/$mic/${gmm}_${cleanup_affix}/decode_dev_sdm1_$LM
   steps/decode_fmllr.sh --nj $nj --cmd "$decode_cmd" --config conf/decode.conf \
-    $graph_dir data/$mic/eval exp/$mic/${gmm}_${cleanup_affix}/decode_eval_$LM
+    $graph_dir data/sdm1/eval exp/$mic/${gmm}_${cleanup_affix}/decode_eval_sdm1_$LM
 fi
-

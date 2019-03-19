@@ -15,7 +15,7 @@ use Getopt::Long;
 # with "retry.pl queue.pl [args]" and it will retry jobs that failed.
 
 
-my $num_tries = 2;
+my $num_tries = 10;
 
 sub print_usage() {
   print STDERR

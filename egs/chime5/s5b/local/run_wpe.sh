@@ -60,6 +60,10 @@ find -L ${sdir} | grep -i ${array} > $expdir/channels_input
 cat $expdir/channels_input | awk -F '/' '{print $NF}' | sed "s@S@$odir\/S@g" > $expdir/channels_output
 paste -d" " $expdir/channels_input $expdir/channels_output > $output_wavfiles
 
+if [ "$array" = "u05" ]; then
+  nj=4
+fi
+
 # split the list for parallel processing
 split_wavfiles=""
 for n in `seq $nj`; do

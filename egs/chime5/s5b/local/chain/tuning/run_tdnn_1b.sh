@@ -254,8 +254,18 @@ if [ $stage -le 16 ]; then
           $tree_dir/graph${lm_suffix} data/${data}_hires ${dir}/decode${lm_suffix}_${data} || exit 1
     ) || touch $dir/.error &
   done
-  wait
   [ -f $dir/.error ] && echo "$0: there was a problem while decoding" && exit 1
+  for data in $test_sets; do
+    (
+      local/nnet3/decode.sh \
+          --acwt 1.0 --post-decode-acwt 10.0 \
+          --frames-per-chunk $frames_per_chunk \
+          --ivector-dir exp/nnet3${nnet3_affix} \
+          data/${data}_hires data/lang $tree_dir/graph${lm_suffix} ${dir} || exit 1
+    ) || touch $dir/.error &
+  done
+  wait
+  [ -f $dir/.error ] && echo "$0: there was a problem while 2-stage decoding" && exit 1
 fi
 
 # Not testing the 'looped' decoding separately, because for

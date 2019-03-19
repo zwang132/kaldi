@@ -29,7 +29,7 @@ set -e -o pipefail
 
 # First the options that are passed through to run_ivector_common.sh
 # (some of which are also used in this script directly).
-stage=0
+stage=6
 mic=ihm
 nj=30
 use_ihm_ali=false
@@ -81,7 +81,7 @@ EOF
 fi
 
 nnet3_affix=_cleaned
-rvb_affix=_rvb
+rvb_affix=_rvb_gsound
 
 
 if $use_ihm_ali; then
@@ -109,7 +109,8 @@ local/nnet3/multi_condition/run_ivector_common.sh --stage $stage \
                                   --train-set $train_set \
                                   --num-threads-ubm $num_threads_ubm \
                                   --num-data-reps $num_data_reps \
-                                  --nnet3-affix "$nnet3_affix"
+                                  --nnet3-affix "$nnet3_affix" \
+				  --rvb_affix "$rvb_affix"
 
 
 # Note: the first stage of the following script is stage 8.
@@ -164,7 +165,7 @@ if [ $stage -le 13 ]; then
     data/lang $gmm_dir $original_lat_dir
   rm $original_lat_dir/fsts.*.gz # save space
 
-  lat_dir_ihmdata=exp/ihm/chain${nnet3_affix}/${gmm}_${train_set}_sp_lats
+  lat_dir_ihmdata=exp/ihm/chain${nnet3_affix}/${gmm}_${train_set}_sp_comb_lats
 
   original_lat_nj=$(cat $original_lat_dir/num_jobs)
   ihm_lat_nj=$(cat $lat_dir_ihmdata/num_jobs)
@@ -322,9 +323,10 @@ if [ $stage -le 18 ]; then
           --frames-per-chunk "$frames_per_chunk" \
           --online-ivector-dir exp/$mic/nnet3${nnet3_affix}${rvb_affix}/ivectors_${decode_set}_hires \
           --scoring-opts "--min-lmwt 5 " \
-         $graph_dir data/$mic/${decode_set}_hires $dir/decode_${decode_set} || exit 1;
+         $graph_dir data/sdm1/${decode_set}_hires $dir/decode_${decode_set}_sdm1 || exit 1;
       ) || touch $dir/.error &
   done
+#         $graph_dir data/$mic/${decode_set}_hires $dir/decode_${decode_set} || exit 1;
   wait
   if [ -f $dir/.error ]; then
     echo "$0: something went wrong in decoding"

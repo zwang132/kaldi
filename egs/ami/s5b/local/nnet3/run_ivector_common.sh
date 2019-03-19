@@ -7,7 +7,7 @@ set -e -o pipefail
 # be called by more scripts).  It contains the common feature preparation and iVector-related parts
 # of the script.  See those scripts for examples of usage.
 
-stage=0
+stage=2
 mic=ihm
 nj=30
 min_seg_len=1.55  # min length in seconds... we do this because chain training

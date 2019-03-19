@@ -30,8 +30,8 @@ noise_dir=/export/b05/cszu/noise
 main_dir=/export/b05/zhiqiw
 
 # training and test data
-#train_set=train_worn_u400k
-train_set=train_worn_Imageaug400k_u400k
+train_set=train_worn_u400k
+#train_set=train_worn_3Daug400k_u400k
 #test_sets="dev_worn dev_${enhancement}_ref eval_${enhancement}_ref"
 test_sets="dev_worn dev_${enhancement}_ref"
 #test_sets="dev_worn dev_${enhancement}_ref dev_${enhancement}_dereverb_ref"
