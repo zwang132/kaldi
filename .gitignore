@@ -78,10 +78,14 @@ GSYMS
 /egs/*/*/exp
 /egs/*/*/data
 /egs/*/*/enhan
+/egs/*/*/RIRS_NOISES
+/egs/ami/s5b/AMI_RIRs
 /egs/reverb/s5_*
 /egs/reverb/*/wav
 /egs/reverb/s5/local/PESQ*
 /egs/reverb/s5/local/REVERB*
+/egs/chime5/s5b
+
 
 # /tools/
 /tools/pocolm/
