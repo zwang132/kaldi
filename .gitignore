@@ -155,16 +155,13 @@ GSYMS
 /tools/phonetisaurus-g2p/
 /tools/mmseg-1.3.0.tar.gz
 /tools/mmseg-1.3.0/
+/tools/cub-1.8.0.zip
+/tools/cub-1.8.0/
+/tools/cub
 /kaldiwin_vs*
-<<<<<<< HEAD
 
 # backup
 /egs/chime5/s5/bk/
 
 # audiofile
 /egs/chime5/s5/enhan*/
-=======
-/tools/cub-1.8.0.zip
-/tools/cub-1.8.0/
-/tools/cub
->>>>>>> upstream/master
