@@ -29,7 +29,7 @@ set -e -o pipefail
 
 # First the options that are passed through to run_ivector_common.sh
 # (some of which are also used in this script directly).
-stage=6
+stage=0
 mic=ihm
 nj=30
 use_ihm_ali=false
@@ -81,7 +81,7 @@ EOF
 fi
 
 nnet3_affix=_cleaned
-rvb_affix=_rvb_gsound
+rvb_affix=_rvb_image
 
 
 if $use_ihm_ali; then
